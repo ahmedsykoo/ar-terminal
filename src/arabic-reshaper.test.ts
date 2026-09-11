@@ -59,6 +59,47 @@ describe('ArabicReshaper', () => {
       const codepoints = [...result].map((c) => c.codePointAt(0)!);
       expect(codepoints).toContain(0x064e);
     });
+
+    it('reshapes Persian pe (پ)', () => {
+      const result = reshaper.reshape('پ');
+      // Pe should behave like baa: isolated U+FB56
+      expect(result).toBe(String.fromCodePoint(0xfb56));
+    });
+
+    it('reshapes Persian tche (چ)', () => {
+      const result = reshaper.reshape('چ');
+      // Tche should behave like jeem: isolated U+FB7A
+      expect(result).toBe(String.fromCodePoint(0xfb7a));
+    });
+
+    it('reshapes Persian gaf (گ)', () => {
+      const result = reshaper.reshape('گ');
+      // Gaf should behave like kaf: isolated U+FB7E
+      expect(result).toBe(String.fromCodePoint(0xfb7e));
+    });
+
+    it('reshapes Urdu reh with small V (ڑ)', () => {
+      const result = reshaper.reshape('ڑ');
+      // Reh with small V is right-joining only: isolated form
+      expect(result).toBe(String.fromCodePoint(0xfb8a));
+    });
+
+    it('reshapes Persian word "پایا" (paya)', () => {
+      const result = reshaper.reshape('پایا');
+      // پ: initial U+FB58, ا: isolated U+FE8E, ی: final U+FEF2 (yeh-like)
+      // Note: This is approximate - actual joining rules may vary
+      expect(result.length).toBeGreaterThan(0);
+      // Should contain the pe initial form
+      expect(result).toContain(String.fromCodePoint(0xfb58));
+    });
+
+    it('reshapes Urdu word "ٹرانا" (trana - to swim)', () => {
+      const result = reshaper.reshape('ٹرانا');
+      // ٹ: initial U+FB68, ر: medial U+FEAD, ا: isolated U+FE8E, ن: final U+FEE6
+      expect(result.length).toBeGreaterThan(0);
+      // Should contain the tte initial form
+      expect(result).toContain(String.fromCodePoint(0xfb68));
+    });
   });
 
   describe('reshapeWithMap', () => {

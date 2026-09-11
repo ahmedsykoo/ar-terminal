@@ -46,6 +46,15 @@ export const ARABIC_FORMS: Record<number, [number, number, number, number]> = {
   0x0648: [0xfeed, 0xfeee, 0, 0], // Waw
   0x0649: [0xfeef, 0xfef0, 0, 0], // Alef-Maksura
   0x064a: [0xfef1, 0xfef2, 0xfef3, 0xfef4], // Yaa
+  0x0679: [0xfb66, 0xfb67, 0xfb68, 0xfb69], // Tte
+  0x067e: [0xfb56, 0xfb57, 0xfb58, 0xfb59], // Pe
+  0x0686: [0xfb7a, 0xfb7b, 0xfb7c, 0xfb7d], // Tche
+  0x0691: [0xfb8a, 0, 0, 0], // Reh with small V (Rreh) - right joining only
+  0x0698: [0xfb8a, 0xfb8b, 0xfb8c, 0xfb8d], // Zehe
+  0x06af: [0xfb7e, 0xfb7f, 0xfb80, 0xfb81], // Gaf
+  0x06ba: [0xfb8e, 0, 0, 0], // Noon Ghunna - right joining only
+  0x06cc: [0xfef1, 0xfef2, 0, 0], // Farsi Yeh - right joining only (no initial/medial)
+  0x06d2: [0xfef1, 0xfef2, 0, 0], // Alef Maksura - right joining only (no initial/medial)
 };
 
 /**
@@ -89,6 +98,15 @@ export const JOINING_TYPES: Record<number, JoiningType> = {
   0x0648: 'R', // Waw
   0x0649: 'R', // Alef-Maksura
   0x064a: 'D', // Yaa
+  0x0679: 'D', // Tte
+  0x067e: 'D', // Pe
+  0x0686: 'D', // Tche
+  0x0691: 'R', // Reh with small V (Rreh) - right joining only
+  0x0698: 'D', // Zehe
+  0x06af: 'D', // Gaf
+  0x06ba: 'R', // Noon Ghunna - right joining only
+  0x06cc: 'R', // Farsi Yeh - right joining only
+  0x06d2: 'R', // Alef Maksura - right joining only
 };
 
 /**
@@ -116,8 +134,10 @@ export function isDiacritic(cp: number): boolean {
 }
 
 /**
- * Returns true if the codepoint is a base Arabic character (U+0621–U+064A).
+ * Returns true if the codepoint is in the Arabic Unicode block (U+0600–U+06FF).
+ * Note: Not all characters in this block are shaped - only those with defined
+ * presentation forms in ARABIC_FORMS will be reshaped. Others pass through.
  */
 export function isArabicChar(cp: number): boolean {
-  return cp >= 0x0621 && cp <= 0x064a;
+  return cp >= 0x0600 && cp <= 0x06ff;
 }
