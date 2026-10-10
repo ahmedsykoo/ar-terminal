@@ -1,6 +1,9 @@
 name: Build Desktop App
 
 on:
+  push:
+    branches: [claude/admiring-newton-xmnkva]
+    paths: ['app/**', 'src/**', '.github/workflows/release-app.yml']
   release:
     types: [created]
   workflow_dispatch:
