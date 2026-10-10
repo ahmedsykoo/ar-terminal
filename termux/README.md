@@ -17,15 +17,22 @@ arterm            # prints a private URL and opens it (or open it in your browse
 - Needs only Python (standard library). Run `termux-open-url` support via `pkg install termux-api` (optional).
 - After changing `src/ui/terminal-ui.ts`, regenerate the page with `termux/gen-web.sh`.
 
-## Claude Code inside Termux
+## Claude Code on Android (verified path)
+
+Claude Code has **no native Android build** (`linux-arm64-android` is not published), so it can't run directly in Termux.
+Run it inside Ubuntu (proot) instead, where it is `linux-arm64`:
 
 ```bash
-pkg install nodejs
-npm config set allow-scripts=@anthropic-ai/claude-code --location=user
-npm i -g @anthropic-ai/claude-code
-claude --version      # must print a version before going on
-arterm                # then run `claude` inside the browser terminal
+pkg install -y proot-distro
+proot-distro install ubuntu
+proot-distro login ubuntu
+# inside Ubuntu:
+apt update && apt install -y nodejs npm
+npm i -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code
+claude
 ```
 
-> PowerShell is **not** in Termux's main repo (`pkg install powershell` fails). Use bash/zsh, or install `pwsh`
-> yourself (e.g. inside a proot-distro Linux) and start it with `arterm --shell pwsh`.
+Arabic renders correctly there when you use the **AR Termux** app (`termux-ar/`), because drawing happens in the app,
+not inside Linux.
+
+> PowerShell is **not** in Termux's main repo. Install `pwsh` inside the Ubuntu proot if you need it.
