@@ -11,3 +11,4 @@ media/icon.svg
 .gitignore
 app/**
 android/**
+termux/**

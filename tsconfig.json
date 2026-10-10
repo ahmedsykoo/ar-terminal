@@ -5,5 +5,5 @@
     "esModuleInterop": true, "skipLibCheck": true, "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true, "declaration": true, "declarationMap": true
   },
-  "exclude": ["node_modules", "dist", "app", "android", "**/*.test.ts", "vitest.config.ts"]
+  "exclude": ["node_modules", "dist", "app", "android", "termux", "**/*.test.ts", "vitest.config.ts"]
 }

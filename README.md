@@ -78,6 +78,12 @@ Build a Windows installer: `npm run dist` (output in `app/release/`). The `Build
 
 > **شغّل البرنامج بدون VS Code:** ادخل مجلد `app`، نفّذ `npm install` ثم `npm start`. الكتابة والمخرجات العربية تظهر متصلة وبالاتجاه الصحيح.
 
+## Android (via Termux)
+
+Run `arterm` inside [Termux](https://termux.dev) to get a real shell (PowerShell/bash/Claude Code) in your phone browser with correct Arabic. See [`termux/README.md`](termux/README.md).
+
+> **على أندرويد:** ثبّت Termux ثم نفّذ `bash ar-terminal/termux/install.sh` وبعدها اكتب `arterm`.
+
 ## Installation
 
 Search **"RTL Terminal"** in the VS Code Extensions sidebar, or run:
