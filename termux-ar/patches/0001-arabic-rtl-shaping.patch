@@ -42,7 +42,7 @@ index 0000000..716081b
 +    }
 +}
 diff --git a/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java b/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
-index 787902c..ff28fb5 100644
+index 787902c..22bc057 100644
 --- a/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
 +++ b/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
 @@ -94,6 +94,7 @@ public final class TerminalRenderer {
@@ -166,7 +166,7 @@ index 787902c..ff28fb5 100644
              } else {
                  canvas.drawText(text, startCharIndex, runWidthChars, left, y - mFontLineSpacingAndAscent, mTextPaint);
              }
-@@ -266,6 +274,200 @@ public final class TerminalRenderer {
+@@ -266,6 +274,211 @@ public final class TerminalRenderer {
          if (savedMatrix) canvas.restore();
      }
  
@@ -261,6 +261,17 @@ index 787902c..ff28fb5 100644
 +        return b;
 +    }
 +
++    /** Neutral characters (blanks and common punctuation) that take the base direction between runs. */
++    private static boolean isNeutralChar(char c) {
++        return c == ' ' || c == '.' || c == ',' || c == ':' || c == ';' || c == '!' || c == '?' || c == '-'
++            || c == '(' || c == ')' || c == '"' || c == '\'';
++    }
++
++    private static boolean allNeutral(char[] line, RunInfo r) {
++        for (int j = r.startIndex; j < r.startIndex + r.widthChars; j++) if (!isNeutralChar(line[j])) return false;
++        return true;
++    }
++
 +    private static boolean allBlank(char[] line, RunInfo r) {
 +        for (int j = r.startIndex; j < r.startIndex + r.widthChars; j++) if (line[j] != ' ') return false;
 +        return true;
@@ -294,14 +305,14 @@ index 787902c..ff28fb5 100644
 +            boolean prevRtl = !out.isEmpty() && out.get(out.size() - 1).rtl;
 +            boolean nextRtl = i + 1 < head.size() && head.get(i + 1).rtl;
 +            if (!r.rtl && r.cursorColor == 0) {
-+                if (allBlank(line, r)) {
++                if (allNeutral(line, r)) {
 +                    if (prevRtl || nextRtl) r.rtl = true;
 +                } else {
 +                    int lead = 0;
-+                    while (lead < r.widthChars && line[r.startIndex + lead] == ' ') lead++;
++                    while (lead < r.widthChars && isNeutralChar(line[r.startIndex + lead])) lead++;
 +                    if (prevRtl && lead > 0) out.add(splitRun(r, lead, true, true));
 +                    int trail = 0;
-+                    for (int j = r.startIndex + r.widthChars - 1; j >= r.startIndex && line[j] == ' '; j--) trail++;
++                    for (int j = r.startIndex + r.widthChars - 1; j >= r.startIndex && isNeutralChar(line[j]); j--) trail++;
 +                    if (nextRtl && trail > 0) {
 +                        out.add(r);
 +                        out.add(splitRun(r, trail, false, true));
