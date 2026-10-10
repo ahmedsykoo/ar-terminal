@@ -1,6 +1,6 @@
 diff --git a/terminal-view/src/main/java/com/termux/view/RtlRunLayout.java b/terminal-view/src/main/java/com/termux/view/RtlRunLayout.java
 new file mode 100644
-index 0000000..8e76278
+index 0000000..716081b
 --- /dev/null
 +++ b/terminal-view/src/main/java/com/termux/view/RtlRunLayout.java
 @@ -0,0 +1,37 @@
@@ -18,18 +18,18 @@ index 0000000..8e76278
 +     * Groups are placed in reverse order (right-to-left paragraph); inside an RTL group the runs are reversed as
 +     * well, inside an LTR group they keep their order.
 +     *
-+     * @param widths  width in columns of each of the first {@code n} runs
++     * @param widths  width (any unit) of each of the first {@code n} runs
 +     * @param rtl     direction of each run
 +     * @param n       number of runs to lay out
-+     * @param start   output: visual start column of each run (block anchored at column 0)
++     * @param start   output: visual start position of each run (block anchored at column 0)
 +     */
-+    static void layout(int[] widths, boolean[] rtl, int n, int[] start) {
++    static void layout(float[] widths, boolean[] rtl, int n, float[] start) {
 +        int[] groupStart = new int[n];
 +        int groups = 0;
 +        for (int i = 0; i < n; i++) {
 +            if (i == 0 || rtl[i] != rtl[i - 1]) groupStart[groups++] = i;
 +        }
-+        int col = 0;
++        float col = 0;
 +        for (int g = groups - 1; g >= 0; g--) {
 +            int from = groupStart[g];
 +            int to = (g + 1 < groups) ? groupStart[g + 1] : n; // exclusive
@@ -42,7 +42,7 @@ index 0000000..8e76278
 +    }
 +}
 diff --git a/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java b/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
-index 787902c..d0adf1a 100644
+index 787902c..c6bde88 100644
 --- a/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
 +++ b/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
 @@ -94,6 +94,7 @@ public final class TerminalRenderer {
@@ -109,16 +109,22 @@ index 787902c..d0adf1a 100644
          }
      }
  
-     private void drawTextRun(Canvas canvas, char[] text, int[] palette, float y, int startColumn, int runWidthColumns,
+-    private void drawTextRun(Canvas canvas, char[] text, int[] palette, float y, int startColumn, int runWidthColumns,
++    private void drawTextRun(Canvas canvas, char[] text, int[] palette, float y, float leftPx, float widthPx, int runWidthColumns,
                               int startCharIndex, int runWidthChars, float mes, int cursor, int cursorStyle,
 -                             long textStyle, boolean reverseVideo) {
 +                             long textStyle, boolean reverseVideo, boolean rtlRun) {
          int foreColor = TextStyle.decodeForeColor(textStyle);
          final int effect = TextStyle.decodeEffect(textStyle);
          int backColor = TextStyle.decodeBackColor(textStyle);
-@@ -212,7 +219,8 @@ public final class TerminalRenderer {
-         float left = startColumn * mFontWidth;
-         float right = left + runWidthColumns * mFontWidth;
+@@ -209,10 +216,11 @@ public final class TerminalRenderer {
+             backColor = tmp;
+         }
+ 
+-        float left = startColumn * mFontWidth;
+-        float right = left + runWidthColumns * mFontWidth;
++        float left = leftPx;
++        float right = left + widthPx;
  
 -        mes = mes / mFontWidth;
 +        // RTL runs are drawn at their natural shaped width (no per-cell scaling).
@@ -135,14 +141,14 @@ index 787902c..d0adf1a 100644
              } else {
                  canvas.drawText(text, startCharIndex, runWidthChars, left, y - mFontLineSpacingAndAscent, mTextPaint);
              }
-@@ -266,6 +274,119 @@ public final class TerminalRenderer {
+@@ -266,6 +274,188 @@ public final class TerminalRenderer {
          if (savedMatrix) canvas.restore();
      }
  
 +    /** One styled run of a row, collected so rows with an RTL base direction can be reordered before drawing. */
 +    private static final class RunInfo {
-+        int startColumn, widthColumns, startIndex, widthChars, visualColumn, cursorColor;
-+        float mes;
++        int startColumn, widthColumns, startIndex, widthChars, cursorColor;
++        float mes, leftPx, widthPx;
 +        long style;
 +        boolean reverse, rtl;
 +    }
@@ -152,7 +158,9 @@ index 787902c..d0adf1a 100644
 +    private void addRun(int startColumn, int widthColumns, int startIndex, int widthChars, float mes,
 +                        int cursorColor, long style, boolean reverse, boolean rtl) {
 +        RunInfo r = new RunInfo();
-+        r.startColumn = r.visualColumn = startColumn;
++        r.startColumn = startColumn;
++        r.leftPx = startColumn * mFontWidth;
++        r.widthPx = widthColumns * mFontWidth;
 +        r.widthColumns = widthColumns;
 +        r.startIndex = startIndex;
 +        r.widthChars = widthChars;
@@ -167,16 +175,58 @@ index 787902c..d0adf1a 100644
 +    /** Draws the collected runs of one row. If the first strong character is RTL, runs are laid out right-to-left. */
 +    private void drawRow(Canvas canvas, char[] line, int[] palette, float y, int cursorShape) {
 +        boolean rtlBase = false;
++        boolean hasBox = false;
 +        for (RunInfo r : mRuns) {
-+            if (r.rtl) { rtlBase = true; break; }
-+            if (hasStrongLtr(line, r.startIndex, r.widthChars)) break;
++            for (int j = r.startIndex; j < r.startIndex + r.widthChars; j++) {
++                if (line[j] >= 0x2500 && line[j] <= 0x257F) { hasBox = true; break; }
++            }
++        }
++        // Rows with box-drawing characters (tables, frames) keep their column layout.
++        if (!hasBox) {
++            for (RunInfo r : mRuns) {
++                if (r.rtl) { rtlBase = true; break; }
++                if (hasStrongLtr(line, r.startIndex, r.widthChars)) break;
++            }
 +        }
 +        if (rtlBase) reorderRuns(line);
 +        for (RunInfo r : mRuns) {
-+            drawTextRun(canvas, line, palette, y, r.visualColumn, r.widthColumns, r.startIndex, r.widthChars, r.mes,
++            drawTextRun(canvas, line, palette, y, r.leftPx, r.widthPx, r.widthColumns, r.startIndex, r.widthChars, r.mes,
 +                r.cursorColor, cursorShape, r.style, r.reverse, r.rtl);
 +        }
 +        mRuns.clear();
++    }
++
++    private RunInfo splitRun(RunInfo r, int chars, boolean atStart, boolean rtl) {
++        // Cuts {@code chars} single-width blanks off one end of r and returns them as a separate run.
++        RunInfo b = new RunInfo();
++        b.widthColumns = chars;
++        b.widthChars = chars;
++        b.mes = chars * mFontWidth;
++        b.style = r.style;
++        b.reverse = r.reverse;
++        b.rtl = rtl;
++        if (atStart) {
++            b.startColumn = r.startColumn;
++            b.startIndex = r.startIndex;
++            r.startColumn += chars;
++            r.startIndex += chars;
++        } else {
++            b.startColumn = r.startColumn + r.widthColumns - chars;
++            b.startIndex = r.startIndex + r.widthChars - chars;
++        }
++        r.widthColumns -= chars;
++        r.widthChars -= chars;
++        r.mes -= b.mes;
++        b.leftPx = b.startColumn * mFontWidth;
++        b.widthPx = chars * mFontWidth;
++        r.leftPx = r.startColumn * mFontWidth;
++        r.widthPx = r.widthColumns * mFontWidth;
++        return b;
++    }
++
++    private static boolean allBlank(char[] line, RunInfo r) {
++        for (int j = r.startIndex; j < r.startIndex + r.widthChars; j++) if (line[j] != ' ') return false;
++        return true;
 +    }
 +
 +    private void reorderRuns(char[] line) {
@@ -184,44 +234,69 @@ index 787902c..d0adf1a 100644
 +        int last = -1;
 +        for (int i = mRuns.size() - 1; i >= 0 && last < 0; i--) {
 +            RunInfo r = mRuns.get(i);
-+            if (r.cursorColor != 0) { last = i; break; }
-+            for (int j = r.startIndex; j < r.startIndex + r.widthChars; j++) {
-+                if (line[j] != ' ') { last = i; break; }
-+            }
++            if (r.cursorColor != 0 || !allBlank(line, r)) last = i;
 +        }
 +        if (last < 0) return;
 +
++        java.util.ArrayList<RunInfo> head = new java.util.ArrayList<>(mRuns.subList(0, last + 1));
++        java.util.ArrayList<RunInfo> tailRuns = new java.util.ArrayList<>(mRuns.subList(last + 1, mRuns.size()));
++
 +        // Split trailing blanks off the last content run so they do not travel with the text.
-+        RunInfo lr = mRuns.get(last);
-+        if (lr.cursorColor == 0) {
++        RunInfo lr = head.get(head.size() - 1);
++        if (lr.cursorColor == 0 && !allBlank(line, lr)) {
 +            int trailing = 0;
 +            for (int j = lr.startIndex + lr.widthChars - 1; j >= lr.startIndex && line[j] == ' '; j--) trailing++;
-+            if (trailing > 0 && trailing < lr.widthChars && trailing < lr.widthColumns) {
-+                RunInfo tail = new RunInfo();
-+                tail.startColumn = tail.visualColumn = lr.startColumn + lr.widthColumns - trailing;
-+                tail.widthColumns = trailing;
-+                tail.startIndex = lr.startIndex + lr.widthChars - trailing;
-+                tail.widthChars = trailing;
-+                tail.mes = trailing * mFontWidth;
-+                tail.style = lr.style;
-+                tail.reverse = lr.reverse;
-+                lr.widthColumns -= trailing;
-+                lr.widthChars -= trailing;
-+                lr.mes -= tail.mes;
-+                mRuns.add(last + 1, tail);
-+            }
++            if (trailing > 0) tailRuns.add(0, splitRun(lr, trailing, false, false));
 +        }
 +
-+        int n = last + 1;
-+        int[] widths = new int[n];
++        // Neutral blanks between runs of different direction take the (RTL) base direction, so a blank next
++        // to RTL text becomes part of the RTL group instead of sticking to the Latin word.
++        java.util.ArrayList<RunInfo> out = new java.util.ArrayList<>();
++        for (int i = 0; i < head.size(); i++) {
++            RunInfo r = head.get(i);
++            boolean prevRtl = !out.isEmpty() && out.get(out.size() - 1).rtl;
++            boolean nextRtl = i + 1 < head.size() && head.get(i + 1).rtl;
++            if (!r.rtl && r.cursorColor == 0) {
++                if (allBlank(line, r)) {
++                    if (prevRtl || nextRtl) r.rtl = true;
++                } else {
++                    int lead = 0;
++                    while (lead < r.widthChars && line[r.startIndex + lead] == ' ') lead++;
++                    if (prevRtl && lead > 0) out.add(splitRun(r, lead, true, true));
++                    int trail = 0;
++                    for (int j = r.startIndex + r.widthChars - 1; j >= r.startIndex && line[j] == ' '; j--) trail++;
++                    if (nextRtl && trail > 0) {
++                        out.add(r);
++                        out.add(splitRun(r, trail, false, true));
++                        continue;
++                    }
++                }
++            }
++            out.add(r);
++        }
++
++        // Pack the runs by their real width (shaped Arabic is narrower than one cell per letter).
++        int n = out.size();
++        float[] widths = new float[n];
 +        boolean[] rtl = new boolean[n];
-+        int[] start = new int[n];
++        float[] start = new float[n];
 +        for (int i = 0; i < n; i++) {
-+            widths[i] = mRuns.get(i).widthColumns;
-+            rtl[i] = mRuns.get(i).rtl;
++            RunInfo r = out.get(i);
++            float w = r.widthColumns * mFontWidth;
++            if (r.rtl && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
++                int end = r.startIndex + r.widthChars;
++                w = (float) Math.ceil(mTextPaint.getRunAdvance(line, r.startIndex, end, r.startIndex, end, true, end));
++            }
++            r.widthPx = w;
++            widths[i] = w;
++            rtl[i] = r.rtl;
 +        }
 +        RtlRunLayout.layout(widths, rtl, n, start);
-+        for (int i = 0; i < n; i++) mRuns.get(i).visualColumn = start[i];
++        for (int i = 0; i < n; i++) out.get(i).leftPx = start[i];
++
++        mRuns.clear();
++        mRuns.addAll(out);
++        mRuns.addAll(tailRuns);
 +    }
 +
 +    private static boolean hasStrongLtr(char[] line, int from, int length) {
