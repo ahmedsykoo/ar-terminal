@@ -1,0 +1,105 @@
+diff --git a/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java b/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
+index 787902c..cb246aa 100644
+--- a/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
++++ b/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
+@@ -94,6 +94,7 @@ public final class TerminalRenderer {
+             int lastRunStartColumn = -1;
+             int lastRunStartIndex = 0;
+             boolean lastRunFontWidthMismatch = false;
++            boolean lastRunRtl = false;
+             int currentCharIndex = 0;
+             float measuredWidthForRun = 0.f;
+ 
+@@ -119,6 +120,7 @@ public final class TerminalRenderer {
+                     lastRunStartColumn = column + 1;
+                     lastRunStartIndex = currentCharIndex;
+                     lastRunFontWidthMismatch = false;
++                    lastRunRtl = false;
+                     currentCharIndex += charsForCodePoint;
+                     continue;
+                 }
+@@ -132,9 +134,12 @@ public final class TerminalRenderer {
+                 // If this is detected, we draw this code point scaled to match what wcwidth() expects.
+                 final float measuredCodePointWidth = (codePoint < asciiMeasures.length) ? asciiMeasures[codePoint] : mTextPaint.measureText(line,
+                     currentCharIndex, charsForCodePoint);
+-                final boolean fontWidthMismatch = Math.abs(measuredCodePointWidth / mFontWidth - codePointWcWidth) > 0.01;
++                // Right-to-left text (Arabic, Hebrew...) is drawn as one shaped run so letters connect and
++                // the bidi order is correct, instead of one scaled glyph per cell.
++                final boolean rtl = isRtlCodePoint(codePoint) || (lastRunRtl && isRtlNeutral(codePoint));
++                final boolean fontWidthMismatch = !rtl && Math.abs(measuredCodePointWidth / mFontWidth - codePointWcWidth) > 0.01;
+ 
+-                if (style != lastRunStyle || insideCursor != lastRunInsideCursor || insideSelection != lastRunInsideSelection || fontWidthMismatch || lastRunFontWidthMismatch) {
++                if (style != lastRunStyle || insideCursor != lastRunInsideCursor || insideSelection != lastRunInsideSelection || fontWidthMismatch || lastRunFontWidthMismatch || rtl != lastRunRtl) {
+                     if (column == 0 || column == lastRunStartColumn) {
+                         // Skip first column as there is nothing to draw, just record the current style.
+                     } else {
+@@ -147,7 +152,7 @@ public final class TerminalRenderer {
+                         }
+                         drawTextRun(canvas, line, palette, heightOffset, lastRunStartColumn, columnWidthSinceLastRun,
+                             lastRunStartIndex, charsSinceLastRun, measuredWidthForRun,
+-                            cursorColor, cursorShape, lastRunStyle, reverseVideo || invertCursorTextColor || lastRunInsideSelection);
++                            cursorColor, cursorShape, lastRunStyle, reverseVideo || invertCursorTextColor || lastRunInsideSelection, lastRunRtl);
+                     }
+                     measuredWidthForRun = 0.f;
+                     lastRunStyle = style;
+@@ -156,6 +161,7 @@ public final class TerminalRenderer {
+                     lastRunStartColumn = column;
+                     lastRunStartIndex = currentCharIndex;
+                     lastRunFontWidthMismatch = fontWidthMismatch;
++                    lastRunRtl = rtl;
+                 }
+                 measuredWidthForRun += measuredCodePointWidth;
+                 column += codePointWcWidth;
+@@ -175,13 +181,13 @@ public final class TerminalRenderer {
+                 invertCursorTextColor = true;
+             }
+             drawTextRun(canvas, line, palette, heightOffset, lastRunStartColumn, columnWidthSinceLastRun, lastRunStartIndex, charsSinceLastRun,
+-                measuredWidthForRun, cursorColor, cursorShape, lastRunStyle, reverseVideo || invertCursorTextColor || lastRunInsideSelection);
++                measuredWidthForRun, cursorColor, cursorShape, lastRunStyle, reverseVideo || invertCursorTextColor || lastRunInsideSelection, lastRunRtl);
+         }
+     }
+ 
+     private void drawTextRun(Canvas canvas, char[] text, int[] palette, float y, int startColumn, int runWidthColumns,
+                              int startCharIndex, int runWidthChars, float mes, int cursor, int cursorStyle,
+-                             long textStyle, boolean reverseVideo) {
++                             long textStyle, boolean reverseVideo, boolean rtlRun) {
+         int foreColor = TextStyle.decodeForeColor(textStyle);
+         final int effect = TextStyle.decodeEffect(textStyle);
+         int backColor = TextStyle.decodeBackColor(textStyle);
+@@ -212,7 +218,8 @@ public final class TerminalRenderer {
+         float left = startColumn * mFontWidth;
+         float right = left + runWidthColumns * mFontWidth;
+ 
+-        mes = mes / mFontWidth;
++        // RTL runs are drawn at their natural shaped width (no per-cell scaling).
++        mes = rtlRun ? runWidthColumns : mes / mFontWidth;
+         boolean savedMatrix = false;
+         if (Math.abs(mes - runWidthColumns) > 0.01) {
+             canvas.save();
+@@ -257,7 +264,7 @@ public final class TerminalRenderer {
+ 
+             // The text alignment is the default Paint.Align.LEFT.
+             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+-                canvas.drawTextRun(text, startCharIndex, runWidthChars, startCharIndex, runWidthChars, left, y - mFontLineSpacingAndAscent, false, mTextPaint);
++                canvas.drawTextRun(text, startCharIndex, runWidthChars, startCharIndex, runWidthChars, left, y - mFontLineSpacingAndAscent, rtlRun, mTextPaint);
+             } else {
+                 canvas.drawText(text, startCharIndex, runWidthChars, left, y - mFontLineSpacingAndAscent, mTextPaint);
+             }
+@@ -266,6 +273,17 @@ public final class TerminalRenderer {
+         if (savedMatrix) canvas.restore();
+     }
+ 
++    /** True for Hebrew, Arabic, Syriac, Thaana, N'Ko, Arabic Extended and the Arabic/Hebrew presentation forms. */
++    private static boolean isRtlCodePoint(int cp) {
++        return (cp >= 0x0590 && cp <= 0x08FF) || (cp >= 0xFB1D && cp <= 0xFDFF) || (cp >= 0xFE70 && cp <= 0xFEFF);
++    }
++
++    /** Characters that may continue a right-to-left run once it has started (spaces, punctuation, digits). */
++    private static boolean isRtlNeutral(int cp) {
++        return cp == ' ' || (cp >= '0' && cp <= '9') || cp == '.' || cp == ',' || cp == ':' || cp == ';'
++            || cp == '!' || cp == '?' || cp == '-' || cp == '(' || cp == ')' || cp == '"' || cp == '\'';
++    }
++
+     public float getFontWidth() {
+         return mFontWidth;
+     }
