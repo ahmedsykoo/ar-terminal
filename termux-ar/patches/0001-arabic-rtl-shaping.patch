@@ -42,7 +42,7 @@ index 0000000..716081b
 +    }
 +}
 diff --git a/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java b/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
-index 787902c..c6bde88 100644
+index 787902c..3858c0d 100644
 --- a/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
 +++ b/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
 @@ -94,6 +94,7 @@ public final class TerminalRenderer {
@@ -113,7 +113,7 @@ index 787902c..c6bde88 100644
 +    private void drawTextRun(Canvas canvas, char[] text, int[] palette, float y, float leftPx, float widthPx, int runWidthColumns,
                               int startCharIndex, int runWidthChars, float mes, int cursor, int cursorStyle,
 -                             long textStyle, boolean reverseVideo) {
-+                             long textStyle, boolean reverseVideo, boolean rtlRun) {
++                             long textStyle, boolean reverseVideo, boolean rtlRun, boolean textPass) {
          int foreColor = TextStyle.decodeForeColor(textStyle);
          final int effect = TextStyle.decodeEffect(textStyle);
          int backColor = TextStyle.decodeBackColor(textStyle);
@@ -132,6 +132,31 @@ index 787902c..c6bde88 100644
          boolean savedMatrix = false;
          if (Math.abs(mes - runWidthColumns) > 0.01) {
              canvas.save();
+@@ -222,13 +230,13 @@ public final class TerminalRenderer {
+             savedMatrix = true;
+         }
+ 
+-        if (backColor != palette[TextStyle.COLOR_INDEX_BACKGROUND]) {
++        if (!textPass && backColor != palette[TextStyle.COLOR_INDEX_BACKGROUND]) {
+             // Only draw non-default background.
+             mTextPaint.setColor(backColor);
+             canvas.drawRect(left, y - mFontLineSpacingAndAscent + mFontAscent, right, y, mTextPaint);
+         }
+ 
+-        if (cursor != 0) {
++        if (!textPass && cursor != 0) {
+             mTextPaint.setColor(cursor);
+             float cursorHeight = mFontLineSpacingAndAscent - mFontAscent;
+             if (cursorStyle == TerminalEmulator.TERMINAL_CURSOR_STYLE_UNDERLINE) cursorHeight /= 4.f;
+@@ -236,7 +244,7 @@ public final class TerminalRenderer {
+             canvas.drawRect(left, y - cursorHeight, right, y, mTextPaint);
+         }
+ 
+-        if ((effect & TextStyle.CHARACTER_ATTRIBUTE_INVISIBLE) == 0) {
++        if (textPass && (effect & TextStyle.CHARACTER_ATTRIBUTE_INVISIBLE) == 0) {
+             if (dim) {
+                 int red = (0xFF & (foreColor >> 16));
+                 int green = (0xFF & (foreColor >> 8));
 @@ -257,7 +265,7 @@ public final class TerminalRenderer {
  
              // The text alignment is the default Paint.Align.LEFT.
@@ -141,7 +166,7 @@ index 787902c..c6bde88 100644
              } else {
                  canvas.drawText(text, startCharIndex, runWidthChars, left, y - mFontLineSpacingAndAscent, mTextPaint);
              }
-@@ -266,6 +274,188 @@ public final class TerminalRenderer {
+@@ -266,6 +274,192 @@ public final class TerminalRenderer {
          if (savedMatrix) canvas.restore();
      }
  
@@ -189,9 +214,13 @@ index 787902c..c6bde88 100644
 +            }
 +        }
 +        if (rtlBase) reorderRuns(line);
-+        for (RunInfo r : mRuns) {
-+            drawTextRun(canvas, line, palette, y, r.leftPx, r.widthPx, r.widthColumns, r.startIndex, r.widthChars, r.mes,
-+                r.cursorColor, cursorShape, r.style, r.reverse, r.rtl);
++        // Two passes: all backgrounds/cursor first, then all text, so a run's background can never
++        // paint over text of another run that was moved by the reordering.
++        for (int pass = 0; pass < 2; pass++) {
++            for (RunInfo r : mRuns) {
++                drawTextRun(canvas, line, palette, y, r.leftPx, r.widthPx, r.widthColumns, r.startIndex, r.widthChars, r.mes,
++                    r.cursorColor, cursorShape, r.style, r.reverse, r.rtl, pass == 1);
++            }
 +        }
 +        mRuns.clear();
 +    }
