@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "module": "commonjs", "target": "ES2022", "lib": ["ES2022", "DOM"],
+    "strict": true, "esModuleInterop": true, "skipLibCheck": true, "noEmit": true
+  },
+  "include": ["src", "renderer", "../src/pty-manager.ts", "../src/ui/terminal-ui.ts"]
+}
