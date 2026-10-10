@@ -1,0 +1,42 @@
+name: Build Desktop App
+
+on:
+  push:
+    branches: [claude/admiring-newton-xmnkva]
+    paths: ['app/**', 'src/**', '.github/workflows/release-app.yml']
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install root dependencies (shared sources)
+        working-directory: .
+        run: npm ci --ignore-scripts
+      - name: Install dependencies
+        run: npm install
+      - name: Typecheck
+        run: npx tsc -p .
+      - name: Build installer
+        run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ar-terminal-windows
+          path: |
+            app/release/*.exe
+      - name: Attach to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/release/*.exe

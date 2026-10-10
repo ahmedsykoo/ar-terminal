@@ -1,0 +1,26 @@
+{
+  "name": "ar-terminal-desktop",
+  "productName": "AR Terminal",
+  "version": "0.1.0",
+  "description": "Standalone terminal (PowerShell/CMD/bash) with proper Arabic, Hebrew, Persian and Urdu rendering",
+  "author": "AR Terminal contributors",
+  "license": "MIT",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "npm run build && electron .",
+    "dist": "npm run build && electron-builder --win --publish never",
+    "dist:dir": "npm run build && electron-builder --dir --publish never"
+  },
+  "dependencies": {
+    "node-pty": "^1.1.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.0",
+    "@types/node": "^20.0.0",
+    "electron": "^32.3.2",
+    "electron-builder": "^25.1.8",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}

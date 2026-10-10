@@ -9,3 +9,6 @@ vitest.config.*
 media/icon.svg
 .env
 .gitignore
+app/**
+android/**
+termux/**

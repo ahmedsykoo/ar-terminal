@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-src 'self' about:; font-src 'self'">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #1e1e1e; color: #ccc; font: 13px 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+  #app { display: flex; flex-direction: column; height: 100%; }
+  #tabbar { display: flex; align-items: stretch; background: #252526; border-bottom: 1px solid #333; height: 34px; flex: none; user-select: none; }
+  #tabs { display: flex; overflow-x: auto; flex: 0 1 auto; }
+  .tab { display: flex; align-items: center; gap: 8px; padding: 0 12px; max-width: 220px; cursor: pointer; border-right: 1px solid #333; color: #999; white-space: nowrap; }
+  .tab span.title { overflow: hidden; text-overflow: ellipsis; }
+  .tab.active { background: #1e1e1e; color: #fff; }
+  .tab .x { opacity: .6; padding: 0 4px; border-radius: 3px; }
+  .tab .x:hover { opacity: 1; background: rgba(255,255,255,.12); }
+  #new-tab, #shell-select { background: transparent; border: none; color: #ccc; cursor: pointer; padding: 0 10px; font: inherit; }
+  #new-tab:hover, #shell-select:hover { background: rgba(255,255,255,.08); }
+  #shell-select option { background: #252526; }
+  #views { flex: 1; position: relative; }
+  #views iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #1e1e1e; }
+  #views iframe.active { display: block; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="tabbar">
+    <div id="tabs"></div>
+    <button id="new-tab" title="New tab (Ctrl+Shift+T)">+</button>
+    <select id="shell-select" title="Shell for new tabs"></select>
+  </div>
+  <div id="views"></div>
+</div>
+<script src="renderer.js"></script>
+</body>
+</html>

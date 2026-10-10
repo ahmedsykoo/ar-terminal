@@ -50,6 +50,44 @@ RTL Terminal renders Arabic correctly — connected letters, proper word shapes,
 | **Custom cursor** | Blinking cursor on Arabic lines |
 | **Cross-platform** | macOS, Linux, and Windows |
 
+## Desktop App (standalone)
+
+AR Terminal is also available as a **standalone desktop terminal** — no VS Code needed. It runs PowerShell (default on Windows), CMD, WSL, Git Bash, or your `$SHELL` on macOS/Linux, with the same Arabic/Hebrew/Persian/Urdu rendering.
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl+Shift+T` | New tab |
+| `Ctrl+Shift+W` | Close tab |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Next / previous tab |
+| `Ctrl+Shift+C` / `Ctrl+Shift+V` | Copy / paste |
+| `Ctrl+Shift+F` or `Ctrl+F` | Find |
+| `Ctrl+=` / `Ctrl+-` / `Ctrl+0` | Font size |
+
+PowerShell and CMD are started in UTF-8 mode so Arabic output arrives intact.
+
+Run from source:
+
+```bash
+cd app
+npm install
+npx @electron/rebuild -f -w node-pty   # only if node-pty has no prebuilt binary for your platform
+npm start
+```
+
+Build a Windows installer: `npm run dist` (output in `app/release/`). The `Build Desktop App` GitHub workflow does this on `windows-latest` and attaches the `.exe` to releases.
+
+> **شغّل البرنامج بدون VS Code:** ادخل مجلد `app`، نفّذ `npm install` ثم `npm start`. الكتابة والمخرجات العربية تظهر متصلة وبالاتجاه الصحيح.
+
+## Android
+
+**AR Termux** (Termux itself with built-in Arabic rendering) now has its own repository: [`ahmedsykoo/ar-termux`](https://github.com/ahmedsykoo/ar-termux).
+
+### Browser terminal for Termux (`arterm`)
+
+Run `arterm` inside [Termux](https://termux.dev) to get a real shell (PowerShell/bash/Claude Code) in your phone browser with correct Arabic. See [`termux/README.md`](termux/README.md).
+
+> **على أندرويد:** ثبّت Termux ثم نفّذ `bash ar-terminal/termux/install.sh` وبعدها اكتب `arterm`.
+
 ## Installation
 
 Search **"RTL Terminal"** in the VS Code Extensions sidebar, or run:
