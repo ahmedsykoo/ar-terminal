@@ -42,7 +42,7 @@ index 0000000..716081b
 +    }
 +}
 diff --git a/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java b/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
-index 787902c..3858c0d 100644
+index 787902c..ff28fb5 100644
 --- a/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
 +++ b/terminal-view/src/main/java/com/termux/view/TerminalRenderer.java
 @@ -94,6 +94,7 @@ public final class TerminalRenderer {
@@ -166,7 +166,7 @@ index 787902c..3858c0d 100644
              } else {
                  canvas.drawText(text, startCharIndex, runWidthChars, left, y - mFontLineSpacingAndAscent, mTextPaint);
              }
-@@ -266,6 +274,192 @@ public final class TerminalRenderer {
+@@ -266,6 +274,200 @@ public final class TerminalRenderer {
          if (savedMatrix) canvas.restore();
      }
  
@@ -216,6 +216,14 @@ index 787902c..3858c0d 100644
 +        if (rtlBase) reorderRuns(line);
 +        // Two passes: all backgrounds/cursor first, then all text, so a run's background can never
 +        // paint over text of another run that was moved by the reordering.
++        if (rtlBase) {
++            // Packing moves runs, so also paint each run's background at its ORIGINAL cells; otherwise the
++            // part of the row the text no longer covers shows the black terminal background.
++            for (RunInfo r : mRuns) {
++                drawTextRun(canvas, line, palette, y, r.startColumn * mFontWidth, r.widthColumns * mFontWidth, r.widthColumns,
++                    r.startIndex, r.widthChars, r.mes, 0, cursorShape, r.style, r.reverse, r.rtl, false);
++            }
++        }
 +        for (int pass = 0; pass < 2; pass++) {
 +            for (RunInfo r : mRuns) {
 +                drawTextRun(canvas, line, palette, y, r.leftPx, r.widthPx, r.widthColumns, r.startIndex, r.widthChars, r.mes,
