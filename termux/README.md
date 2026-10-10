@@ -32,7 +32,7 @@ npm i -g --allow-scripts=@anthropic-ai/claude-code @anthropic-ai/claude-code
 claude
 ```
 
-Arabic renders correctly there when you use the **AR Termux** app (`termux-ar/`), because drawing happens in the app,
+Arabic renders correctly there when you use the **AR Termux** app ([`ahmedsykoo/ar-termux`](https://github.com/ahmedsykoo/ar-termux)), because drawing happens in the app,
 not inside Linux.
 
 > PowerShell is **not** in Termux's main repo. Install `pwsh` inside the Ubuntu proot if you need it.
