@@ -21,10 +21,9 @@ Read this first; it is short on purpose (saves tokens). Principles: `.specify/me
 ## Repo map
 - `src/` extension + shared UI (`src/ui/terminal-ui.ts`), tests `src/*.test.ts` (vitest)
 - `app/` Electron desktop (Windows first) · `android/` WebView app · `termux/` browser terminal (`arterm`)
-- `termux-ar/` Termux patch (renderer) · `.github/workflows/` CI builds
+- AR Termux (Android Termux fork) now lives in its own repo: `ahmedsykoo/ar-termux` · `.github/workflows/` CI builds
 
 ## Commands
 - Test: `npm test` · Types: `npx tsc --noEmit -p .`
 - Regenerate pages after editing `src/ui/terminal-ui.ts`: `android/build-assets.sh`, `termux/gen-web.sh`
-- Termux patch layout logic test lives in the patch's `RtlRunLayout`; CI builds the APK.
 - Never push to `main`; work on the feature branch; PR is already open.

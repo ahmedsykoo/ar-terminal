@@ -78,7 +78,11 @@ Build a Windows installer: `npm run dist` (output in `app/release/`). The `Build
 
 > **شغّل البرنامج بدون VS Code:** ادخل مجلد `app`، نفّذ `npm install` ثم `npm start`. الكتابة والمخرجات العربية تظهر متصلة وبالاتجاه الصحيح.
 
-## Android (via Termux)
+## Android
+
+**AR Termux** (Termux itself with built-in Arabic rendering) now has its own repository: [`ahmedsykoo/ar-termux`](https://github.com/ahmedsykoo/ar-termux).
+
+### Browser terminal for Termux (`arterm`)
 
 Run `arterm` inside [Termux](https://termux.dev) to get a real shell (PowerShell/bash/Claude Code) in your phone browser with correct Arabic. See [`termux/README.md`](termux/README.md).
 

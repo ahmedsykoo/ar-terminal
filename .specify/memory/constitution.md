@@ -14,7 +14,7 @@ The terminal page lives in `src/ui/terminal-ui.ts` and is reused by VS Code, Ele
 We run the user's real shell (PowerShell/bash/...) on a PTY. We only change how output is drawn.
 
 ### IV. Patch, don't fork (Termux)
-AR Termux is `termux-ar/patches/*.patch` applied to a pinned upstream commit (`BASE_COMMIT`). Keep patches minimal.
+AR Termux lives in its own repo (`ahmedsykoo/ar-termux`) as patches applied to a pinned upstream commit. Keep patches minimal.
 
 ### V. Verify before claiming
 Run `npm test` and `npx tsc --noEmit -p .`; for UI changes render in Chromium (Playwright) and look at the screenshot.
