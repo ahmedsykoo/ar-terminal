@@ -10,3 +10,4 @@ media/icon.svg
 .env
 .gitignore
 app/**
+android/**
