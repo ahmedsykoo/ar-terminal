@@ -291,6 +291,42 @@ ${extraCss}
     return defaultFg;
   }
 
+  // A line gets an RTL base direction when its first strong character is RTL
+  // (Unicode bidi rule P2/P3). Digits, punctuation and box-drawing are neutral.
+  function lineIsRtlBase(text) {
+    for (const ch of text) {
+      const cp = ch.codePointAt(0);
+      if (isRTLChar(cp)) return true;
+      if ((cp >= 0x41 && cp <= 0x5A) || (cp >= 0x61 && cp <= 0x7A) || (cp >= 0xC0 && cp <= 0x24F) ||
+          (cp >= 0x370 && cp <= 0x58F) || (cp >= 0x900 && cp <= 0x1FFF) || (cp >= 0x3040 && cp <= 0xD7FF)) return false;
+    }
+    return false;
+  }
+
+  // Pixel x of the caret at logical character index idx inside an RTL block.
+  function caretLeft(inner, idx, cells, cellW) {
+    const walker = document.createTreeWalker(inner, NodeFilter.SHOW_TEXT);
+    let node = null, remaining = idx, last = null;
+    while ((node = walker.nextNode())) {
+      last = node;
+      if (remaining <= node.length) {
+        if (remaining < node.length || !walker.nextNode()) break;
+        walker.previousNode();
+      }
+      remaining -= node.length;
+    }
+    if (!last) return idx * cellW;
+    const target = node || last;
+    const off = node ? Math.min(remaining, node.length) : last.length;
+    const range = document.createRange();
+    range.setStart(target, off);
+    range.collapse(true);
+    const r = range.getBoundingClientRect();
+    const o = overlay.getBoundingClientRect();
+    const extra = idx > cells ? (idx - cells) * cellW : 0;
+    return r.left - o.left - extra;
+  }
+
   // Scan visible rows, overlay lines that contain Arabic text
   function updateArabicOverlay() {
     while (overlay.firstChild) overlay.removeChild(overlay.firstChild);
@@ -349,6 +385,41 @@ ${extraCss}
           currentKey = key;
         }
         currentSpan.textContent += ch || ' ';
+      }
+
+      const rtlBase = lineIsRtlBase(lineDiv.textContent || '');
+      if (rtlBase) {
+        // Arabic-dominant line: lay out with an RTL base direction so the order of
+        // Arabic and Latin runs reads naturally. The block stays anchored at column 0
+        // and spans the same number of cells the line uses in the terminal grid.
+        const inner = document.createElement('div');
+        inner.style.cssText = 'position:absolute;top:0;left:0;white-space:pre;direction:rtl;width:max-content;';
+        while (lineDiv.firstChild) inner.appendChild(lineDiv.firstChild);
+        // Trim trailing blanks so they do not push the text to the far right.
+        let trimmed = 0;
+        for (let n = inner.lastChild; n; n = inner.lastChild) {
+          const t = n.textContent || '';
+          const r = t.replace(/ +$/, '');
+          trimmed += t.length - r.length;
+          if (r.length === 0) { inner.removeChild(n); continue; }
+          n.textContent = r;
+          break;
+        }
+        const cells = (inner.textContent || '').length;
+        inner.style.minWidth = (cells * dims.cellW) + 'px';
+        lineDiv.appendChild(inner);
+        lineDiv.dataset.rtl = '1';
+        overlay.appendChild(lineDiv);
+
+        if (y === buf.cursorY) {
+          const cursorEl = document.createElement('span');
+          cursorEl.className = 'overlay-cursor';
+          cursorEl.style.height = dims.cellH + 'px';
+          const x = caretLeft(inner, buf.cursorX, cells, dims.cellW);
+          cursorEl.style.left = x + 'px';
+          lineDiv.appendChild(cursorEl);
+        }
+        continue;
       }
 
       // Cursor on this line
