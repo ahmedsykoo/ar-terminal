@@ -152,3 +152,5 @@ Contributions are welcome! Please open an issue or PR on the [GitHub repository]
 ## License
 
 MIT
+
+<p align="center"><a href="https://github.com/ahmedsykoo"><img src="assets/footer.svg" alt="Built by Ahmed Ramadan Mahmoud" width="100%"></a></p>
